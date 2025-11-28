@@ -1,0 +1,183 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\PesertaMagang;
+use App\Models\Kriteria;
+use App\Models\Penilaian;
+use App\Services\SawService;
+use Illuminate\Http\Request;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
+
+class PenilaianController extends Controller
+{
+    use AuthorizesRequests;
+
+    protected $sawService;
+
+    public function __construct(SawService $sawService)
+    {
+        $this->sawService = $sawService;
+    }
+
+    /**
+     * Display a listing of peserta magang for penilaian
+     */
+    public function index(Request $request)
+    {
+        $this->authorize('view penilaian');
+
+        $periode = $request->input('periode', now()->format('Y-m-01'));
+
+        // Get peserta magang aktif
+        $pesertaMagang = PesertaMagang::with(['user', 'mentor'])
+            ->where('status_magang', 'aktif')
+            ->paginate(10);
+
+        // Get kriteria aktif
+        $kriteriaList = Kriteria::active()->get();
+
+        // Check if current periode has penilaian
+        $hasPenilaian = Penilaian::where('periode_penilaian', $periode)->exists();
+
+        return Inertia::render('Admin/Penilaian/Index', [
+            'pesertaMagang' => $pesertaMagang,
+            'kriteria' => $kriteriaList,
+            'periode' => $periode,
+            'hasPenilaian' => $hasPenilaian,
+        ]);
+    }
+
+    /**
+     * Show form to input nilai for specific peserta
+     */
+    public function create(PesertaMagang $pesertaMagang, Request $request)
+    {
+        $this->authorize('create penilaian');
+
+        $periode = $request->input('periode', now()->format('Y-m-01'));
+
+        // Get kriteria aktif
+        $kriteriaList = Kriteria::active()->get();
+
+        // Get existing penilaian if any
+        $existingPenilaian = Penilaian::where('peserta_magang_id', $pesertaMagang->id)
+            ->where('periode_penilaian', $periode)
+            ->with('kriteria')
+            ->get()
+            ->keyBy('kriteria_id');
+
+        return Inertia::render('Admin/Penilaian/Create', [
+            'pesertaMagang' => $pesertaMagang->load('user'),
+            'kriteria' => $kriteriaList,
+            'periode' => $periode,
+            'existingPenilaian' => $existingPenilaian,
+        ]);
+    }
+
+    /**
+     * Store penilaian for peserta magang
+     */
+    public function store(Request $request, PesertaMagang $pesertaMagang)
+    {
+        $this->authorize('create penilaian');
+
+        $validated = $request->validate([
+            'periode_penilaian' => 'required|date',
+            'nilai' => 'required|array',
+            'nilai.*.kriteria_id' => 'required|exists:kriteria,id',
+            'nilai.*.nilai_skala' => 'required|integer|min:1|max:5',
+            'nilai.*.catatan' => 'nullable|string|max:500',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            foreach ($validated['nilai'] as $nilaiData) {
+                // Convert skala (1-5) to nilai (1-100)
+                $nilaiKonversi = $this->convertSkalaToNilai($nilaiData['nilai_skala']);
+
+                Penilaian::updateOrCreate(
+                    [
+                        'peserta_magang_id' => $pesertaMagang->id,
+                        'kriteria_id' => $nilaiData['kriteria_id'],
+                        'periode_penilaian' => $validated['periode_penilaian'],
+                    ],
+                    [
+                        'nilai' => $nilaiKonversi,
+                        'catatan' => $nilaiData['catatan'] ?? null,
+                        'penilai_id' => auth()->id(),
+                    ]
+                );
+            }
+
+            DB::commit();
+
+            return redirect()
+                ->route('penilaian.index', ['periode' => $validated['periode_penilaian']])
+                ->with('success', "Penilaian untuk {$pesertaMagang->user->name} berhasil disimpan.");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal menyimpan penilaian: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Convert skala likert (1-5) to nilai (1-100)
+     */
+    private function convertSkalaToNilai($skala)
+    {
+        $mapping = [
+            5 => 95,  // 90-100 -> gunakan nilai tengah 95
+            4 => 85,  // 80-89 -> gunakan nilai tengah 85
+            3 => 75,  // 70-79 -> gunakan nilai tengah 75
+            2 => 65,  // 60-69 -> gunakan nilai tengah 65
+            1 => 55,  // 50-59 -> gunakan nilai tengah 55
+        ];
+
+        return $mapping[$skala] ?? 75;
+    }
+
+    /**
+     * Get skala from nilai
+     */
+    private function getSkalaFromNilai($nilai)
+    {
+        if ($nilai >= 90) return 5;
+        if ($nilai >= 80) return 4;
+        if ($nilai >= 70) return 3;
+        if ($nilai >= 60) return 2;
+        return 1;
+    }
+
+    /**
+     * Show edit form
+     */
+    public function edit(PesertaMagang $pesertaMagang, Request $request)
+    {
+        return $this->create($pesertaMagang, $request);
+    }
+
+    /**
+     * Delete penilaian for specific periode
+     */
+    public function destroy(PesertaMagang $pesertaMagang, Request $request)
+    {
+        $this->authorize('delete penilaian');
+
+        $periode = $request->input('periode');
+
+        try {
+            Penilaian::where('peserta_magang_id', $pesertaMagang->id)
+                ->where('periode_penilaian', $periode)
+                ->delete();
+
+            return back()->with('success', 'Penilaian berhasil dihapus.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal menghapus penilaian: ' . $e->getMessage());
+        }
+    }
+}
