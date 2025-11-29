@@ -51,10 +51,10 @@ export interface PesertaMagang {
     user_id: number;
     student_id: string;
     campus: string;
-    division: string;
+    division_id: number;
     phone?: string;
-    start_date: string;
-    end_date: string;
+    start_date?: string;
+    end_date?: string;
     mentor_id?: number;
     status_magang: "aktif" | "selesai" | "berhenti";
     created_at: string;
@@ -107,19 +107,6 @@ export interface PaginatedData<T> {
         to: number;
         total: number;
     };
-}
-
-export interface Mahasiswa {
-    id: number;
-    nim: string;
-    nama: string;
-    jurusan: string;
-    universitas: string;
-    periode_mulai: string;
-    periode_selesai: string;
-    pembimbing_id: number;
-    created_at: string;
-    updated_at: string;
 }
 
 export interface Kriteria {
