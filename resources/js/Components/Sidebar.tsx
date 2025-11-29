@@ -45,6 +45,20 @@ const menuItems = [
         roles: ["admin", "mentor", "peserta_magang"],
     },
     {
+        title: "Manajemen Divisi",
+        href: "/admin/divisions",
+        icon: Users,
+        roles: ["admin"],
+        permission: "manage divisions",
+    },
+    {
+        title: "Manajemen Mentor",
+        href: "/admin/mentors",
+        icon: Users,
+        roles: ["admin"],
+        permission: "manage mentors",
+    },
+    {
         title: "User Approval",
         href: "/admin/user-approval",
         icon: Users,
@@ -53,7 +67,7 @@ const menuItems = [
     },
     {
         title: "Peserta Magang",
-        href: "/admin/peserta-magang",
+        href: "/admin/peserta-magang/manage",
         icon: Users,
         roles: ["admin", "mentor"],
     },
@@ -126,10 +140,10 @@ export function Sidebar({ auth, children }: SidebarProps) {
                                     </div>
                                     <div className="flex flex-col gap-0.5 leading-none">
                                         <span className="font-semibold">
-                                            SPK Magang
+                                            SPK Penilaian
                                         </span>
                                         <span className="text-xs">
-                                            Sistem Penilaian
+                                            Kinerja Magang
                                         </span>
                                     </div>
                                 </Link>

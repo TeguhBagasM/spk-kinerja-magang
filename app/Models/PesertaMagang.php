@@ -10,7 +10,7 @@ class PesertaMagang extends Model
         'user_id',
         'student_id',
         'campus',
-        'division',
+        'division_id',
         'start_date',
         'end_date',
         'mentor_id',
@@ -22,7 +22,6 @@ class PesertaMagang extends Model
         'end_date' => 'date:Y-m-d',
     ];
 
-
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -31,6 +30,11 @@ class PesertaMagang extends Model
     public function mentor()
     {
         return $this->belongsTo(Mentor::class);
+    }
+
+    public function division()
+    {
+        return $this->belongsTo(Division::class);
     }
 
     // public function penilaian()

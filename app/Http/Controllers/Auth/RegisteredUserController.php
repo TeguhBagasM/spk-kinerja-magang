@@ -4,12 +4,12 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Division;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,95 +21,85 @@ class RegisteredUserController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('Auth/Register');
+        // Get active divisions for select options
+        $divisions = Division::active()
+            ->orderBy('name')
+            ->get()
+            ->map(function ($division) {
+                return [
+                    'id' => $division->id,
+                    'name' => $division->name,
+                    'code' => $division->code,
+                    'description' => $division->description,
+                ];
+            });
+
+        return Inertia::render('Auth/Register', [
+            'divisions' => $divisions,
+        ]);
     }
 
     /**
      * Handle an incoming registration request.
+     * Only for Peserta Magang
      */
     public function store(Request $request): RedirectResponse
     {
-        // Base validation
-        $rules = [
+        // Validation rules for peserta magang only
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:' . User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => 'required|in:peserta_magang,mentor',
-            'phone' => 'nullable|max:20',
-        ];
-
-        // Conditional validation based on role
-        if ($request->role === 'peserta_magang') {
-            $rules['student_id'] = 'required|string|max:50|unique:peserta_magangs,student_id';
-            $rules['campus'] = 'required|string|max:255';
-            $rules['division'] = 'required|string|max:100';
-        } elseif ($request->role === 'mentor') {
-            $rules['name'] = 'required|string|max:255';
-            $rules['employee_id'] = 'required|string|max:50|unique:mentors,employee_id';
-            $rules['position'] = 'required|string|max:100';
-            $rules['department'] = 'required|string|max:100';
-        }
-
-        $validated = $request->validate($rules);
+            'phone' => 'nullable|string|max:20',
+            'student_id' => 'required|string|max:50|unique:peserta_magangs,student_id',
+            'campus' => 'required|string|max:255',
+            'division_id' => 'required|exists:divisions,id',
+            'start_date' => 'required|date|before_or_equal:today',
+            'end_date' => 'required|date|after:start_date|after_or_equal:today',
+        ], [
+            'student_id.unique' => 'NIM/Student ID sudah terdaftar.',
+            'email.unique' => 'Email sudah terdaftar.',
+            'start_date.before_or_equal' => 'Tanggal mulai tidak boleh di masa depan.',
+            'end_date.after' => 'Tanggal selesai harus setelah tanggal mulai.',
+        ]);
 
         try {
             DB::beginTransaction();
 
-            // Create user (hanya data autentikasi)
+            // Create user with pending status
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
                 'status' => 'pending',
-                'phone' => $validated['phone'],
+                'phone' => $validated['phone'] ?? null,
             ]);
 
-            // Assign role
-            $user->assignRole($validated['role']);
+            // Assign peserta_magang role
+            $user->assignRole('peserta_magang');
 
-            // Simpan data role-specific ke session untuk digunakan saat approval
-            // ATAU langsung create record tapi dengan flag pending
-            Session::put('registration_data', [
+            // Create peserta magang record
+            \App\Models\PesertaMagang::create([
                 'user_id' => $user->id,
-                'role' => $validated['role'],
-                'role_data' => $request->only([
-                    'student_id', 'campus', 'division',
-                    'employee_id', 'position', 'department'
-                ])
+                'student_id' => $validated['student_id'],
+                'campus' => $validated['campus'],
+                'division_id' => $validated['division_id'],
+                'start_date' => $validated['start_date'],
+                'end_date' => $validated['end_date'],
+                'status_magang' => 'aktif',
             ]);
-
-            // Langsung create record di tabel terkait (recommended)
-            if ($validated['role'] === 'peserta_magang') {
-                \App\Models\PesertaMagang::create([
-                    'user_id' => $user->id,
-                    'student_id' => $validated['student_id'],
-                    'campus' => $validated['campus'],
-                    'division' => $validated['division'],
-                    'start_date' => now(), // Bisa di-update nanti saat approval
-                    'end_date' => now()->addMonths(3),
-                    'status_magang' => 'aktif',
-                ]);
-            } elseif ($validated['role'] === 'mentor') {
-                \App\Models\Mentor::create([
-                    'user_id' => $user->id,
-                    'name' => $validated['name'],
-                    'employee_id' => $validated['employee_id'],
-                    'position' => $validated['position'],
-                    'department' => $validated['department'],
-                ]);
-            }
 
             event(new Registered($user));
 
             DB::commit();
 
-            return redirect()->route('login')->with('success', 'Registrasi berhasil! Akun Anda menunggu persetujuan dari admin.');
+            return redirect()->route('login')->with('success', 'Registrasi berhasil! Silakan login setelah akun Anda disetujui oleh admin.');
         } catch (\Exception $e) {
             DB::rollBack();
 
             return back()
                 ->withInput($request->except('password', 'password_confirmation'))
-                ->with('error', 'Terjadi kesalahan saat registrasi: ' . $e->getMessage());
+                ->with('error', 'Terjadi kesalahan saat registrasi. Silakan coba lagi.');
         }
     }
 }

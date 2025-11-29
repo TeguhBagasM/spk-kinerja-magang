@@ -50,6 +50,9 @@ class RolePermissionSeeder extends Seeder
             // Laporan
             'view laporan',
             'export laporan',
+
+            'manage divisions',
+            'manage mentors',
         ];
 
         foreach ($permissions as $permission) {
