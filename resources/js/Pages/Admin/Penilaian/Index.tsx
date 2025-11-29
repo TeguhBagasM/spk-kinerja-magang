@@ -212,7 +212,7 @@ export default function PenilaianIndex({
                                         <TableHeader>
                                             <TableRow>
                                                 <TableHead>Nama</TableHead>
-                                                <TableHead>NIM</TableHead>
+                                                <TableHead>NIM/NIS</TableHead>
                                                 <TableHead>
                                                     Universitas
                                                 </TableHead>
