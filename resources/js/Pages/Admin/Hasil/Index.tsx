@@ -273,7 +273,7 @@ export default function HasilSawIndex({
                                                 Ranking
                                             </TableHead>
                                             <TableHead>Nama</TableHead>
-                                            <TableHead>NIM</TableHead>
+                                            <TableHead>NIM/NIS</TableHead>
                                             <TableHead>Universitas</TableHead>
                                             <TableHead className="text-right">
                                                 Skor Akhir
