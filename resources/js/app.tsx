@@ -10,7 +10,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { useEffect } from "react";
 import { router } from "@inertiajs/react";
 
-const appName = import.meta.env.VITE_APP_NAME || "Laravel";
+const appName = import.meta.env.VITE_APP_NAME || "SPK";
 
 // Component untuk handle flash messages
 function FlashMessages() {
