@@ -88,7 +88,7 @@ class PenilaianController extends Controller
             'periode_penilaian' => 'required|date',
             'nilai' => 'required|array',
             'nilai.*.kriteria_id' => 'required|exists:kriteria,id',
-            'nilai.*.nilai' => 'required|numeric|min:0|max:100', // ✅ Ubah jadi langsung input 0-100
+            'nilai.*.nilai' => 'required|numeric|min:0|max:100',
             'nilai.*.catatan' => 'nullable|string|max:500',
         ]);
 
@@ -103,7 +103,7 @@ class PenilaianController extends Controller
                         'periode_penilaian' => $validated['periode_penilaian'],
                     ],
                     [
-                        'nilai' => $nilaiData['nilai'], // ✅ Langsung simpan nilai asli
+                        'nilai' => $nilaiData['nilai'],
                         'catatan' => $nilaiData['catatan'] ?? null,
                         'penilai_id' => auth()->id(),
                     ]
@@ -121,8 +121,6 @@ class PenilaianController extends Controller
             return back()->with('error', 'Gagal menyimpan penilaian: ' . $e->getMessage());
         }
     }
-
-    // ❌ HAPUS fungsi convertSkalaToNilai() dan getSkalaFromNilai()
 
     /**
      * Show edit form
