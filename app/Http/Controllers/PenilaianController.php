@@ -88,7 +88,7 @@ class PenilaianController extends Controller
             'periode_penilaian' => 'required|date',
             'nilai' => 'required|array',
             'nilai.*.kriteria_id' => 'required|exists:kriteria,id',
-            'nilai.*.nilai_skala' => 'required|integer|min:1|max:5',
+            'nilai.*.nilai' => 'required|numeric|min:0|max:100', // ✅ Ubah jadi langsung input 0-100
             'nilai.*.catatan' => 'nullable|string|max:500',
         ]);
 
@@ -96,9 +96,6 @@ class PenilaianController extends Controller
 
         try {
             foreach ($validated['nilai'] as $nilaiData) {
-                // Convert skala (1-5) to nilai (1-100)
-                $nilaiKonversi = $this->convertSkalaToNilai($nilaiData['nilai_skala']);
-
                 Penilaian::updateOrCreate(
                     [
                         'peserta_magang_id' => $pesertaMagang->id,
@@ -106,7 +103,7 @@ class PenilaianController extends Controller
                         'periode_penilaian' => $validated['periode_penilaian'],
                     ],
                     [
-                        'nilai' => $nilaiKonversi,
+                        'nilai' => $nilaiData['nilai'], // ✅ Langsung simpan nilai asli
                         'catatan' => $nilaiData['catatan'] ?? null,
                         'penilai_id' => auth()->id(),
                     ]
@@ -125,33 +122,7 @@ class PenilaianController extends Controller
         }
     }
 
-    /**
-     * Convert skala likert (1-5) to nilai (1-100)
-     */
-    private function convertSkalaToNilai($skala)
-    {
-        $mapping = [
-            5 => 95,  // 90-100 -> gunakan nilai tengah 95
-            4 => 85,  // 80-89 -> gunakan nilai tengah 85
-            3 => 75,  // 70-79 -> gunakan nilai tengah 75
-            2 => 65,  // 60-69 -> gunakan nilai tengah 65
-            1 => 55,  // 50-59 -> gunakan nilai tengah 55
-        ];
-
-        return $mapping[$skala] ?? 75;
-    }
-
-    /**
-     * Get skala from nilai
-     */
-    private function getSkalaFromNilai($nilai)
-    {
-        if ($nilai >= 90) return 5;
-        if ($nilai >= 80) return 4;
-        if ($nilai >= 70) return 3;
-        if ($nilai >= 60) return 2;
-        return 1;
-    }
+    // ❌ HAPUS fungsi convertSkalaToNilai() dan getSkalaFromNilai()
 
     /**
      * Show edit form
