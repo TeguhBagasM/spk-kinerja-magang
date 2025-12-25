@@ -32,32 +32,69 @@ import {
     Line,
 } from "recharts";
 
-// Dummy data untuk chart
-const statusData = [
-    { name: "UI/UX Designer", value: 1, color: "#0891b2" },
-    { name: "Bussiness Analyst", value: 3, color: "#22c55e" },
-    { name: "Fullstack Mobile", value: 2, color: "#f97316" },
-    { name: "Fullstack Developer", value: 6, color: "#06b6d4" },
-];
+import type { PieLabelRenderProps } from "recharts";
 
-const performanceData = [
-    { bulan: "Jan", peserta: 12, penilaian: 10 },
-    { bulan: "Feb", peserta: 15, penilaian: 13 },
-    { bulan: "Mar", peserta: 18, penilaian: 16 },
-    { bulan: "Apr", peserta: 14, penilaian: 14 },
-    { bulan: "Mei", peserta: 20, penilaian: 18 },
-    { bulan: "Jun", peserta: 16, penilaian: 15 },
-];
+interface DashboardStats {
+    totalPeserta?: number;
+    totalMentor?: number;
+    totalDivisi?: number;
+    penilaianSelesai?: number;
+    nilaiRataRata?: number;
+    totalKriteria?: number;
+    hariMagang?: number;
+    ranking?: number;
+    skorAkhir?: number;
+}
 
-const recentScores = [
-    { name: "Ahmad Fauzi", score: 92, status: "Excellent" },
-    { name: "Siti Nurhaliza", score: 88, status: "Very Good" },
-    { name: "Budi Santoso", score: 85, status: "Good" },
-    { name: "Rina Melati", score: 90, status: "Excellent" },
-];
+interface DistribusiDivisi {
+    name: string;
+    value: number;
+    [key: string]: string | number;
+}
+
+interface TrenData {
+    bulan: string;
+    peserta?: number;
+    penilaian: number;
+}
+
+interface PenilaianTerbaru {
+    name: string;
+    score: number;
+    status: string;
+}
+
+interface PenilaianKriteria {
+    name: string;
+    score: number;
+    max: number;
+}
+
+interface DashboardPageProps extends PageProps {
+    stats: DashboardStats;
+    distribusiDivisi?: DistribusiDivisi[];
+    trenData?: TrenData[];
+    penilaianTerbaru?: PenilaianTerbaru[];
+    penilaianPerKriteria?: PenilaianKriteria[];
+    trenNilai?: TrenData[];
+    error?: string;
+}
+
+// Warna untuk Pie Chart
+const COLORS = ["#0891b2", "#22c55e", "#f97316", "#06b6d4", "#8b5cf6"];
 
 export default function Dashboard() {
-    const { auth } = usePage<PageProps>().props;
+    const {
+        auth,
+        stats,
+        distribusiDivisi,
+        trenData,
+        penilaianTerbaru,
+        penilaianPerKriteria,
+        trenNilai,
+        error,
+    } = usePage<DashboardPageProps>().props;
+
     const userRoles = auth.user?.roles || [];
 
     // Check user role
@@ -65,34 +102,34 @@ export default function Dashboard() {
     const isMentor = userRoles.includes("mentor");
     const isPeserta = userRoles.includes("peserta_magang");
 
-    // Stats data based on role
+    // Stats cards based on role
     const getStatsCards = () => {
         if (isAdmin || isMentor) {
             return [
                 {
                     title: "Total Peserta",
-                    value: "17",
+                    value: stats?.totalPeserta?.toString() || "0",
                     description: "Peserta magang aktif",
                     icon: Users,
                     color: "bg-blue-500",
                 },
                 {
                     title: "Mentor",
-                    value: "10",
+                    value: stats?.totalMentor?.toString() || "0",
                     description: "Mentor aktif",
                     icon: Award,
                     color: "bg-green-500",
                 },
                 {
                     title: "Total Divisi",
-                    value: "7",
+                    value: stats?.totalDivisi?.toString() || "0",
                     description: "Divisi yang tersedia",
                     icon: ClipboardList,
                     color: "bg-orange-500",
                 },
                 {
                     title: "Penilaian Selesai",
-                    value: "12",
+                    value: stats?.penilaianSelesai?.toString() || "0",
                     description: "Penilaian bulan ini",
                     icon: FileText,
                     color: "bg-purple-500",
@@ -103,29 +140,31 @@ export default function Dashboard() {
             return [
                 {
                     title: "Nilai Rata-rata",
-                    value: "87.5",
+                    value: stats?.nilaiRataRata?.toString() || "0",
                     description: "Performa keseluruhan",
                     icon: TrendingUp,
                     color: "bg-blue-500",
                 },
                 {
                     title: "Penilaian Selesai",
-                    value: "8",
-                    description: "Dari 10 kriteria",
+                    value: `${stats?.penilaianSelesai || 0}/${
+                        stats?.totalKriteria || 0
+                    }`,
+                    description: "Dari total kriteria",
                     icon: FileText,
                     color: "bg-green-500",
                 },
                 {
-                    title: "Jam Magang",
-                    value: "320",
-                    description: "Total jam kerja",
+                    title: "Hari Magang",
+                    value: `${stats?.hariMagang ?? 0}`,
+                    description: "Hari kerja efektif",
                     icon: Clock,
                     color: "bg-orange-500",
                 },
                 {
                     title: "Ranking",
-                    value: "#12",
-                    description: "Dari 50 peserta",
+                    value: stats?.ranking ? `#${stats.ranking}` : "-",
+                    description: `Dari ${stats?.totalPeserta || 0} peserta`,
                     icon: Award,
                     color: "bg-purple-500",
                 },
@@ -134,6 +173,20 @@ export default function Dashboard() {
     };
 
     const statsCards = getStatsCards();
+
+    // Handle error state
+    if (error) {
+        return (
+            <AuthenticatedLayout>
+                <Head title="Dashboard" />
+                <div className="space-y-6">
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                        {error}
+                    </div>
+                </div>
+            </AuthenticatedLayout>
+        );
+    }
 
     return (
         <AuthenticatedLayout>
@@ -182,97 +235,112 @@ export default function Dashboard() {
                 {/* Charts Section */}
                 <div className="grid gap-6 md:grid-cols-2">
                     {/* Pie Chart - Only for Admin/Mentor */}
-                    {(isAdmin || isMentor) && (
-                        <Card className="col-span-1">
+                    {(isAdmin || isMentor) &&
+                        distribusiDivisi &&
+                        distribusiDivisi.length > 0 && (
+                            <Card className="col-span-1">
+                                <CardHeader>
+                                    <CardTitle>
+                                        Distribusi Peserta Aktif
+                                    </CardTitle>
+                                    <CardDescription>
+                                        Data Peserta Magang berdasarkan divisi
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <ResponsiveContainer
+                                        width="100%"
+                                        height={300}
+                                    >
+                                        <PieChart>
+                                            <Pie
+                                                data={distribusiDivisi}
+                                                cx="50%"
+                                                cy="50%"
+                                                labelLine={false}
+                                                outerRadius={80}
+                                                fill="#8884d8"
+                                                dataKey="value"
+                                                label={({
+                                                    name,
+                                                    percent,
+                                                }: PieLabelRenderProps) =>
+                                                    `${name ?? "Unknown"}: ${
+                                                        percent
+                                                            ? (
+                                                                  percent * 100
+                                                              ).toFixed(0)
+                                                            : 0
+                                                    }%`
+                                                }
+                                            >
+                                                {distribusiDivisi.map(
+                                                    (
+                                                        _,
+                                                        index // ✅ Fix: Rename entry to _
+                                                    ) => (
+                                                        <Cell
+                                                            key={`cell-${index}`}
+                                                            fill={
+                                                                COLORS[
+                                                                    index %
+                                                                        COLORS.length
+                                                                ]
+                                                            }
+                                                        />
+                                                    )
+                                                )}
+                                            </Pie>
+                                            <Tooltip />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                    <div className="mt-4 space-y-2">
+                                        {distribusiDivisi.map((item, index) => (
+                                            <div
+                                                key={index}
+                                                className="flex items-center justify-between text-sm"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <div
+                                                        className="w-3 h-3 rounded-full"
+                                                        style={{
+                                                            backgroundColor:
+                                                                COLORS[
+                                                                    index %
+                                                                        COLORS.length
+                                                                ],
+                                                        }}
+                                                    />
+                                                    <span>{item.name}</span>
+                                                </div>
+                                                <span className="font-semibold">
+                                                    {item.value}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                    {/* Performance Chart */}
+                    {(isAdmin || isMentor) && trenData && (
+                        <Card
+                            className={
+                                distribusiDivisi && distribusiDivisi.length > 0
+                                    ? "col-span-1"
+                                    : "col-span-2"
+                            }
+                        >
                             <CardHeader>
-                                <CardTitle>Distribusi Peserta Aktif</CardTitle>
+                                <CardTitle>Tren Peserta & Penilaian</CardTitle>
                                 <CardDescription>
-                                    Data Peserta Magang berdasarkan divisi
+                                    Data 6 bulan terakhir
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <ResponsiveContainer width="100%" height={300}>
-                                    <PieChart>
-                                        <Pie
-                                            data={statusData}
-                                            cx="50%"
-                                            cy="50%"
-                                            labelLine={false}
-                                            outerRadius={80}
-                                            fill="#8884d8"
-                                            dataKey="value"
-                                        >
-                                            {statusData.map((entry, index) => (
-                                                <Cell
-                                                    key={`cell-${index}`}
-                                                    fill={entry.color}
-                                                />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                                <div className="mt-4 space-y-2">
-                                    {statusData.map((item, index) => (
-                                        <div
-                                            key={index}
-                                            className="flex items-center justify-between text-sm"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <div
-                                                    className="w-3 h-3 rounded-full"
-                                                    style={{
-                                                        backgroundColor:
-                                                            item.color,
-                                                    }}
-                                                />
-                                                <span>{item.name}</span>
-                                            </div>
-                                            <span className="font-semibold">
-                                                {item.value}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    {/* Performance Chart */}
-                    <Card
-                        className={
-                            isAdmin || isMentor ? "col-span-1" : "col-span-2"
-                        }
-                    >
-                        <CardHeader>
-                            <CardTitle>
-                                {isAdmin || isMentor
-                                    ? "Tren Peserta & Penilaian"
-                                    : "Perkembangan Nilai Anda"}
-                            </CardTitle>
-                            <CardDescription>
-                                Data 6 bulan terakhir
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <ResponsiveContainer width="100%" height={300}>
-                                {isPeserta ? (
-                                    <LineChart data={performanceData}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="bulan" />
-                                        <YAxis />
-                                        <Tooltip />
-                                        <Legend />
-                                        <Line
-                                            type="monotone"
-                                            dataKey="penilaian"
-                                            stroke="#8b5cf6"
-                                            strokeWidth={2}
-                                            name="Nilai"
-                                        />
-                                    </LineChart>
-                                ) : (
-                                    <BarChart data={performanceData}>
+                                    <BarChart data={trenData}>
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis dataKey="bulan" />
                                         <YAxis />
@@ -289,114 +357,171 @@ export default function Dashboard() {
                                             name="Penilaian"
                                         />
                                     </BarChart>
-                                )}
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Line Chart for Peserta */}
+                    {isPeserta && trenNilai && (
+                        <Card className="col-span-2">
+                            <CardHeader>
+                                <CardTitle>Perkembangan Nilai Anda</CardTitle>
+                                <CardDescription>
+                                    Rata-rata nilai 6 bulan terakhir
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <LineChart data={trenNilai}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="bulan" />
+                                        <YAxis domain={[0, 100]} />
+                                        <Tooltip />
+                                        <Legend />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="penilaian"
+                                            stroke="#8b5cf6"
+                                            strokeWidth={2}
+                                            name="Nilai"
+                                        />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
 
-                {/* Recent Activity Table */}
-                {(isAdmin || isMentor) && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Penilaian Terbaru</CardTitle>
-                            <CardDescription>
-                                Hasil penilaian peserta magang terkini
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {recentScores.map((item, index) => (
-                                    <div
-                                        key={index}
-                                        className="flex items-center justify-between p-4 rounded-lg border"
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                                <span className="text-blue-600 font-semibold">
-                                                    {item.name
-                                                        .split(" ")
-                                                        .map((n) => n[0])
-                                                        .join("")}
-                                                </span>
+                {/* Recent Activity Table - Admin/Mentor */}
+                {(isAdmin || isMentor) &&
+                    penilaianTerbaru &&
+                    penilaianTerbaru.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Penilaian Terbaru</CardTitle>
+                                <CardDescription>
+                                    Hasil penilaian peserta magang terkini
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    {penilaianTerbaru.map((item, index) => (
+                                        <div
+                                            key={index}
+                                            className="flex items-center justify-between p-4 rounded-lg border"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                                    <span className="text-blue-600 font-semibold">
+                                                        {item.name
+                                                            .split(" ")
+                                                            .map((n) => n[0])
+                                                            .join("")}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <p className="font-medium">
+                                                        {item.name}
+                                                    </p>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {item.status}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="font-medium">
-                                                    {item.name}
+                                            <div className="text-right">
+                                                <p className="text-2xl font-bold text-blue-600">
+                                                    {item.score}
                                                 </p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {item.status}
+                                                <p className="text-xs text-muted-foreground">
+                                                    Score
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-2xl font-bold text-blue-600">
-                                                {item.score}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                                Score
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
 
                 {/* Personal Progress for Peserta */}
-                {isPeserta && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Kriteria Penilaian Anda</CardTitle>
-                            <CardDescription>
-                                Progress penilaian berdasarkan kriteria
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {[
-                                    {
-                                        name: "Kedisiplinan",
-                                        score: 90,
-                                        max: 100,
-                                    },
-                                    { name: "Kerjasama", score: 85, max: 100 },
-                                    { name: "Inisiatif", score: 88, max: 100 },
-                                    {
-                                        name: "Kemampuan Teknis",
-                                        score: 92,
-                                        max: 100,
-                                    },
-                                    { name: "Komunikasi", score: 87, max: 100 },
-                                ].map((criteria, index) => (
-                                    <div key={index} className="space-y-2">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="font-medium">
-                                                {criteria.name}
-                                            </span>
-                                            <span className="text-muted-foreground">
-                                                {criteria.score}/{criteria.max}
-                                            </span>
-                                        </div>
-                                        <div className="w-full bg-gray-200 rounded-full h-2">
+                {isPeserta &&
+                    penilaianPerKriteria &&
+                    penilaianPerKriteria.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Kriteria Penilaian Anda</CardTitle>
+                                <CardDescription>
+                                    Progress penilaian berdasarkan kriteria
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    {penilaianPerKriteria.map(
+                                        (criteria, index) => (
                                             <div
-                                                className="bg-blue-600 h-2 rounded-full transition-all"
-                                                style={{
-                                                    width: `${
-                                                        (criteria.score /
-                                                            criteria.max) *
-                                                        100
-                                                    }%`,
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
+                                                key={index}
+                                                className="space-y-2"
+                                            >
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="font-medium">
+                                                        {criteria.name}
+                                                    </span>
+                                                    <span className="text-muted-foreground">
+                                                        {criteria.score}/
+                                                        {criteria.max}
+                                                    </span>
+                                                </div>
+                                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                                    <div
+                                                        className={`h-2 rounded-full transition-all ${
+                                                            criteria.score >= 90
+                                                                ? "bg-emerald-600"
+                                                                : criteria.score >=
+                                                                  80
+                                                                ? "bg-blue-600"
+                                                                : criteria.score >=
+                                                                  70
+                                                                ? "bg-yellow-600"
+                                                                : criteria.score >=
+                                                                  60
+                                                                ? "bg-orange-600"
+                                                                : "bg-red-600"
+                                                        }`}
+                                                        style={{
+                                                            width: `${
+                                                                (criteria.score /
+                                                                    criteria.max) *
+                                                                100
+                                                            }%`,
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                {/* Empty State - Peserta belum ada penilaian */}
+                {isPeserta &&
+                    (!penilaianPerKriteria ||
+                        penilaianPerKriteria.length === 0) && (
+                        <Card>
+                            <CardContent className="py-12 text-center">
+                                <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                                    Belum Ada Penilaian
+                                </h3>
+                                <p className="text-sm text-gray-500">
+                                    Anda belum memiliki data penilaian. Hubungi
+                                    mentor Anda untuk informasi lebih lanjut.
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )}
             </div>
         </AuthenticatedLayout>
     );
