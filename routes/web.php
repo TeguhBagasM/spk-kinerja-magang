@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\DivisionController;
 use App\Http\Controllers\Admin\MentorController;
 use App\Http\Controllers\Admin\PesertaMagangController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FrontEndController;
 use App\Http\Controllers\HasilSawController;
 use App\Http\Controllers\PenilaianController;
@@ -13,9 +14,9 @@ use Inertia\Inertia;
 
 Route::get('/', [FrontEndController::class, 'welcome'])->name('welcome');
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified', 'check.user.status'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified', 'check.user.status'])
+    ->name('dashboard');
 
 Route::middleware(['auth', 'check.user.status'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
