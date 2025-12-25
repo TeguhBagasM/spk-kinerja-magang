@@ -33,7 +33,7 @@ class KriteriaSeeder extends Seeder
                 'kode' => 'C3',
                 'nama' => 'Kerjasama dengan Tim',
                 'deskripsi' => 'Kemampuan bekerja sama dan berkolaborasi dengan tim',
-                'bobot' => 10.00, // 10%
+                'bobot' => 11.00, // 10%
                 'jenis' => 'benefit',
                 'is_active' => true,
             ],
@@ -41,7 +41,7 @@ class KriteriaSeeder extends Seeder
                 'kode' => 'C4',
                 'nama' => 'Penguasaan Tools',
                 'deskripsi' => 'Kemampuan menguasai dan menggunakan tools/teknologi yang diperlukan',
-                'bobot' => 10.00, // 10%
+                'bobot' => 08.00, // 10%
                 'jenis' => 'benefit',
                 'is_active' => true,
             ],
@@ -49,7 +49,7 @@ class KriteriaSeeder extends Seeder
                 'kode' => 'C5',
                 'nama' => 'Kehadiran',
                 'deskripsi' => 'Tingkat kehadiran dan kedisiplinan waktu',
-                'bobot' => 10.00, // 10%
+                'bobot' => 11.00, // 10%
                 'jenis' => 'benefit',
                 'is_active' => true,
             ],
@@ -73,7 +73,7 @@ class KriteriaSeeder extends Seeder
                 'kode' => 'C8',
                 'nama' => 'Ketepatan Mengerjakan Task',
                 'deskripsi' => 'Ketepatan dan akurasi dalam menyelesaikan tugas sesuai requirement',
-                'bobot' => 10.00, // 10%
+                'bobot' => 09.00, // 10%
                 'jenis' => 'benefit',
                 'is_active' => true,
             ],
@@ -81,7 +81,7 @@ class KriteriaSeeder extends Seeder
                 'kode' => 'C9',
                 'nama' => 'Problem Solving',
                 'deskripsi' => 'Kemampuan menganalisis dan menyelesaikan masalah',
-                'bobot' => 10.00, // 10%
+                'bobot' => 11.00, // 10%
                 'jenis' => 'benefit',
                 'is_active' => true,
             ],

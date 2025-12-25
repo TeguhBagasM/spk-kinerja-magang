@@ -86,7 +86,8 @@ class RolePermissionSeeder extends Seeder
         $pesertaRole->givePermissionTo([
             'view own penilaian',
         ]);
-
+// kpi cara hitungnya gimana
+// aplikasi hr sunfish
         // Buat user admin default (approved)
         $admin = User::create([
             'name' => 'Administrator',

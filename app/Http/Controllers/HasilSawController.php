@@ -91,9 +91,26 @@ class HasilSawController extends Controller
         $penilaianDetail = Penilaian::with('kriteria')
             ->where('peserta_magang_id', $hasilSaw->peserta_magang_id)
             ->where('periode_penilaian', $hasilSaw->periode_penilaian)
-            ->get();
+            ->get()
+            ->map(function ($penilaian) use ($hasilSaw) {
+                // Ambil detail normalisasi berdasarkan kriteria_id
+                $normalisasi = $hasilSaw->detail_normalisasi[$penilaian->kriteria_id] ?? null;
 
-        return Inertia::render('Admin/HasilSaw/Show', [
+                return [
+                    'id' => $penilaian->id,
+                    'nilai' => $penilaian->nilai,
+                    'kriteria' => [
+                        'id' => $penilaian->kriteria->id,
+                        'nama' => $penilaian->kriteria->nama,
+                        'bobot' => $penilaian->kriteria->bobot,
+                        'jenis' => $penilaian->kriteria->jenis,
+                    ],
+                    'nilai_ternormalisasi' => $normalisasi['nilai_ternormalisasi'] ?? null,
+                    'nilai_preferensi' => $normalisasi['nilai_preferensi'] ?? null,
+                ];
+            });
+
+        return Inertia::render('Admin/Hasil/Show', [
             'hasilSaw' => $hasilSaw,
             'penilaianDetail' => $penilaianDetail,
         ]);
