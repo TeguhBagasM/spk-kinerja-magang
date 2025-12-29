@@ -10,6 +10,18 @@ use Illuminate\Support\Facades\DB;
 class SawService
 {
     /**
+     * Konversi nilai asli (0-100) ke skala 1-5
+     */
+    private function konversiNilai($nilai)
+    {
+        if ($nilai >= 90) return 5;
+        if ($nilai >= 80) return 4;
+        if ($nilai >= 70) return 3;
+        if ($nilai >= 60) return 2;
+        return 1; // 0-59
+    }
+
+    /**
      * Hitung SAW untuk periode tertentu
      */
     public function hitungSaw($periode)
@@ -26,8 +38,9 @@ class SawService
             // 2. Ambil semua kriteria aktif
             $kriteriaList = Kriteria::active()->get();
 
-            // 3. Cari nilai max dan min untuk setiap kriteria (untuk normalisasi)
-            $nilaiMaxMin = $this->getNilaiMaxMin($penilaianData, $kriteriaList);
+            // 3. Konversi nilai dan cari nilai max/min untuk setiap kriteria
+            $nilaiKonversi = $this->konversiSemuaNilai($penilaianData);
+            $nilaiMaxMin = $this->getNilaiMaxMin($nilaiKonversi, $kriteriaList);
 
             // 4. Hitung nilai normalisasi dan skor akhir untuk setiap peserta
             $hasilPerhitungan = [];
@@ -38,15 +51,18 @@ class SawService
 
                 foreach ($penilaianPeserta as $penilaian) {
                     $kriteria = $penilaian->kriteria;
-                    $nilai = $penilaian->nilai;
+                    $nilaiAsli = $penilaian->nilai;
+
+                    // Konversi nilai ke skala 1-5
+                    $nilaiTerkonversi = $this->konversiNilai($nilaiAsli);
 
                     // Normalisasi berdasarkan jenis kriteria
                     if ($kriteria->isBenefit()) {
                         // Benefit: Rij / Max
-                        $nilaiNormalisasi = $nilai / $nilaiMaxMin[$kriteria->id]['max'];
+                        $nilaiNormalisasi = $nilaiTerkonversi / $nilaiMaxMin[$kriteria->id]['max'];
                     } else {
                         // Cost: Min / Rij
-                        $nilaiNormalisasi = $nilaiMaxMin[$kriteria->id]['min'] / $nilai;
+                        $nilaiNormalisasi = $nilaiMaxMin[$kriteria->id]['min'] / $nilaiTerkonversi;
                     }
 
                     // Hitung nilai preferensi: nilai normalisasi * bobot
@@ -57,7 +73,8 @@ class SawService
                     $detailNormalisasi[$kriteria->id] = [
                         'kode_kriteria' => $kriteria->kode,
                         'nama_kriteria' => $kriteria->nama,
-                        'nilai_asli' => $nilai,
+                        'nilai_asli' => $nilaiAsli,
+                        'nilai_konversi' => $nilaiTerkonversi,
                         'nilai_normalisasi' => round($nilaiNormalisasi, 4),
                         'bobot' => $kriteria->bobot,
                         'nilai_preferensi' => round($nilaiPreferensi, 4),
@@ -111,20 +128,34 @@ class SawService
     }
 
     /**
-     * Dapatkan nilai max dan min untuk setiap kriteria
+     * Konversi semua nilai penilaian ke skala 1-5
      */
-    private function getNilaiMaxMin($penilaianData, $kriteriaList)
+    private function konversiSemuaNilai($penilaianData)
+    {
+        $nilaiKonversi = [];
+
+        foreach ($penilaianData as $pesertaMagangId => $penilaianPeserta) {
+            foreach ($penilaianPeserta as $penilaian) {
+                $nilaiKonversi[$pesertaMagangId][$penilaian->kriteria_id] = $this->konversiNilai($penilaian->nilai);
+            }
+        }
+
+        return $nilaiKonversi;
+    }
+
+    /**
+     * Dapatkan nilai max dan min untuk setiap kriteria (dari nilai konversi)
+     */
+    private function getNilaiMaxMin($nilaiKonversi, $kriteriaList)
     {
         $nilaiMaxMin = [];
 
         foreach ($kriteriaList as $kriteria) {
             $nilaiKriteria = [];
 
-            foreach ($penilaianData as $penilaianPeserta) {
-                foreach ($penilaianPeserta as $penilaian) {
-                    if ($penilaian->kriteria_id == $kriteria->id) {
-                        $nilaiKriteria[] = $penilaian->nilai;
-                    }
+            foreach ($nilaiKonversi as $pesertaNilai) {
+                if (isset($pesertaNilai[$kriteria->id])) {
+                    $nilaiKriteria[] = $pesertaNilai[$kriteria->id];
                 }
             }
 
