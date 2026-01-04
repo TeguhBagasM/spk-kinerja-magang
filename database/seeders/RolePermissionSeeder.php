@@ -53,6 +53,7 @@ class RolePermissionSeeder extends Seeder
 
             'manage divisions',
             'manage mentors',
+            'manage kriteria',
         ];
 
         foreach ($permissions as $permission) {
