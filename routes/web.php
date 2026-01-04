@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DivisionController;
+use App\Http\Controllers\Admin\KriteriaController;
 use App\Http\Controllers\Admin\MentorController;
 use App\Http\Controllers\Admin\PesertaMagangController;
 use App\Http\Controllers\DashboardController;
@@ -74,6 +75,15 @@ Route::middleware(['auth', 'check.user.status'])->group(function () {
 
         Route::post('/admin/divisions/{division}/toggle-status', [DivisionController::class, 'toggleStatus'])
             ->name('admin.divisions.toggle-status');
+
+        Route::get('/admin/kriteria', [KriteriaController::class, 'index'])
+        ->name('admin.kriteria.index');
+        Route::post('/admin/kriteria', [KriteriaController::class, 'store'])
+            ->name('admin.kriteria.store');
+        Route::put('/admin/kriteria/{kriteria}', [KriteriaController::class, 'update'])
+            ->name('admin.kriteria.update');
+        Route::delete('/admin/kriteria/{kriteria}', [KriteriaController::class, 'destroy'])
+            ->name('admin.kriteria.destroy');
 
         Route::get('/admin/mentors', [MentorController::class, 'index'])
             ->name('admin.mentors.index');

@@ -1,5 +1,5 @@
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { Head, router, useForm } from "@inertiajs/react";
+import { Head, router } from "@inertiajs/react";
 import { PageProps, HasilSaw } from "@/types";
 import { Button } from "@/Components/ui/button";
 import {
@@ -17,6 +17,16 @@ import {
     TableHeader,
     TableRow,
 } from "@/Components/ui/table";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/Components/ui/alert-dialog";
 import { Input } from "@/Components/ui/input";
 import { Label } from "@/Components/ui/label";
 import {
@@ -45,7 +55,8 @@ export default function HasilSawIndex({
     hasHasil,
 }: HasilSawIndexProps) {
     const [selectedPeriode, setSelectedPeriode] = useState(periode);
-    const { processing } = useForm();
+    const [isCalculateDialogOpen, setIsCalculateDialogOpen] = useState(false);
+    const [processing, setProcessing] = useState(false);
 
     const handlePeriodeChange = (newPeriode: string) => {
         setSelectedPeriode(newPeriode);
@@ -55,17 +66,20 @@ export default function HasilSawIndex({
         });
     };
 
-    const handleCalculate = () => {
-        if (
-            confirm(
-                "Hitung ulang ranking untuk periode ini? Data sebelumnya akan di-update."
-            )
-        ) {
-            // error disini, dan solusinya:Kalau kamu cuma butuh kirim nilai biasa, jangan pakai useForm, pakai router langsung
-            router.post(route("hasil-saw.calculate"), {
+    const handleCalculateConfirm = () => {
+        setProcessing(true);
+        router.post(
+            route("hasil-saw.calculate"),
+            {
                 periode: selectedPeriode,
-            });
-        }
+            },
+            {
+                onFinish: () => {
+                    setProcessing(false);
+                    setIsCalculateDialogOpen(false);
+                },
+            }
+        );
     };
 
     const getRankingBadge = (ranking: number) => {
@@ -147,7 +161,9 @@ export default function HasilSawIndex({
                             </div>
                             <div className="flex items-end gap-2">
                                 <Button
-                                    onClick={handleCalculate}
+                                    onClick={() =>
+                                        setIsCalculateDialogOpen(true)
+                                    }
                                     disabled={
                                         processing || penilaianCount === 0
                                     }
@@ -353,6 +369,61 @@ export default function HasilSawIndex({
                     </Card>
                 )}
             </div>
+
+            {/* Calculate Confirmation Dialog */}
+            <AlertDialog
+                open={isCalculateDialogOpen}
+                onOpenChange={setIsCalculateDialogOpen}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                            <Calculator className="h-5 w-5 text-blue-600" />
+                            Hitung Ulang Ranking?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="space-y-2">
+                            <p>
+                                Anda akan menghitung ulang ranking untuk periode{" "}
+                                <span className="font-semibold">
+                                    {new Date(
+                                        selectedPeriode
+                                    ).toLocaleDateString("id-ID", {
+                                        month: "long",
+                                        year: "numeric",
+                                    })}
+                                </span>
+                                .
+                            </p>
+                            <p className="text-orange-600">
+                                Data ranking sebelumnya akan di-update dengan
+                                hasil perhitungan baru.
+                            </p>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={processing}>
+                            Batal
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleCalculateConfirm}
+                            disabled={processing}
+                            className="bg-blue-600 hover:bg-blue-700"
+                        >
+                            {processing ? (
+                                <>
+                                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                    Menghitung...
+                                </>
+                            ) : (
+                                <>
+                                    <Calculator className="mr-2 h-4 w-4" />
+                                    Ya, Hitung Sekarang
+                                </>
+                            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </AuthenticatedLayout>
     );
 }

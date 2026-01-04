@@ -52,6 +52,13 @@ const menuItems = [
         permission: "manage divisions",
     },
     {
+        title: "Manajemen Kriteria",
+        href: "/admin/kriteria",
+        icon: Users,
+        roles: ["admin"],
+        permission: "manage kriteria",
+    },
+    {
         title: "Manajemen Mentor",
         href: "/admin/mentors",
         icon: Users,
