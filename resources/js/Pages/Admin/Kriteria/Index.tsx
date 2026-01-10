@@ -200,9 +200,9 @@ export default function Index({
                                         <TableHead className="text-center">
                                             Jenis
                                         </TableHead>
-                                        <TableHead className="text-center">
+                                        {/* <TableHead className="text-center">
                                             Penilaian
-                                        </TableHead>
+                                        </TableHead> */}
                                         <TableHead className="text-center">
                                             Status
                                         </TableHead>
@@ -267,11 +267,11 @@ export default function Index({
                                                     )}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell className="text-center">
+                                            {/* <TableCell className="text-center">
                                                 <Badge variant="secondary">
                                                     {item.penilaian_count}
                                                 </Badge>
-                                            </TableCell>
+                                            </TableCell> */}
                                             <TableCell className="text-center">
                                                 <Badge
                                                     variant={

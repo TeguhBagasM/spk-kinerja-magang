@@ -91,7 +91,7 @@ const menuItems = [
     },
     {
         title: "Hasil & Ranking",
-        href: "/admin/hasil-saw",
+        href: "/hasil-saw",
         icon: Trophy,
         roles: ["admin", "mentor"],
         permission: "view laporan",
