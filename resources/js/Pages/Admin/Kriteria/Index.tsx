@@ -329,7 +329,7 @@ export default function Index({
                         {totalBobot !== 100 && kriteria.length > 0 && (
                             <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
                                 <p className="text-sm text-amber-800">
-                                    ⚠️ <strong>Peringatan:</strong> Total bobot
+                                    <strong>Peringatan:</strong> Total bobot
                                     saat ini {totalBobot.toFixed(2)}%. Untuk
                                     perhitungan SAW yang valid, total bobot
                                     harus 100%.
